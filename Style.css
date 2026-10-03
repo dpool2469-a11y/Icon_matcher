@@ -1,0 +1,104 @@
+:root {
+  --cols: 4;
+  --bg-color: #0f172a;
+  --card-bg: #1e293b;
+  --card-matched: #059669;
+  --text-color: #f8fafc;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+}
+
+.game-container {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.game-header {
+  background: var(--card-bg);
+  padding: 14px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.game-header h2 {
+  text-align: center;
+  font-size: 1.4rem;
+}
+
+.controls, .stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+select, button {
+  background: #334155;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.game-board {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.card {
+  aspect-ratio: 1;
+  background: var(--card-bg);
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.8rem;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+.card.flipped {
+  background: #3b82f6;
+  transform: rotateY(180deg);
+}
+
+.card.matched {
+  background: var(--card-matched);
+  opacity: 0.8;
+  cursor: default;
+}
+
+.ad-container {
+  background: var(--card-bg);
+  border: 1px dashed #475569;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
