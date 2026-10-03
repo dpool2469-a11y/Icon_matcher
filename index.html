@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Icon Matcher</title>
+  
+  <!-- PWA Settings -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="game-container">
+    <header class="game-header">
+      <h2>🧠 Icon Matcher</h2>
+      <div class="controls">
+        <select id="grid-select">
+          <option value="2x4">2×4 Grid</option>
+          <option value="4x4" selected>4×4 Grid</option>
+          <option value="4x5">4×5 Grid</option>
+        </select>
+        <button id="reset-btn">🔄 Reset</button>
+      </div>
+      <div class="stats">
+        <span>Moves: <strong id="move-count">0</strong></span>
+        <span>Best: <strong id="best-score">-</strong></span>
+      </div>
+    </header>
+
+    <main id="game-board" class="game-board"></main>
+
+    <!-- Ad Placeholder / Monetization Container -->
+    <div id="ad-container" class="ad-container">
+      <p class="ad-label">Advertisement Space</p>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
