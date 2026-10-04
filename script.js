@@ -1,175 +1,168 @@
-// Icon Matcher - Game Logic
+/* =========================================================
+   ICON MATCHER
+   Dot-matrix icons + 1P / 2P alternating turns
+   ========================================================= */
 
 const iconPatterns = {
   heart: [
-    "0110110",
-    "1111111",
-    "1111111",
-    "0111110",
-    "0011100",
-    "0001000"
+    "01100110",
+    "11111111",
+    "11111111",
+    "01111110",
+    "00111100",
+    "00011000"
   ],
 
   shield: [
-    "0111110",
-    "1111111",
-    "1111111",
-    "1111111",
-    "0111110",
-    "0011100",
-    "0001000"
+    "01111110",
+    "11111111",
+    "11111111",
+    "01111110",
+    "00111100",
+    "00011000"
   ],
 
   star: [
-    "0010000",
-    "0010000",
-    "1111111",
-    "0111110",
-    "0011100",
-    "0101010",
-    "1000001"
+    "001100",
+    "101101",
+    "011110",
+    "111111",
+    "011110",
+    "110011"
   ],
 
   grid: [
-    "1111111",
-    "1010101",
-    "1111111",
-    "1010101",
-    "1111111",
-    "1010101",
-    "1111111"
+    "111111",
+    "100001",
+    "101101",
+    "101101",
+    "100001",
+    "111111"
   ],
 
   circle: [
-    "0011100",
-    "0111110",
-    "1100011",
-    "1100011",
-    "1100011",
-    "0111110",
-    "0011100"
+    "001100",
+    "010010",
+    "100001",
+    "100001",
+    "010010",
+    "001100"
   ],
 
   bolt: [
-    "0001100",
-    "0011100",
-    "0111000",
-    "1111111",
-    "0011100",
-    "0011000",
-    "0010000"
+    "00110",
+    "01100",
+    "11110",
+    "00110",
+    "01100",
+    "11000"
   ],
 
   arrow: [
-    "0010000",
-    "0011000",
-    "0011100",
-    "1111111",
-    "0011100",
-    "0011000",
-    "0010000"
+    "001000",
+    "011000",
+    "111111",
+    "011000",
+    "001100",
+    "000110"
   ],
 
   diamond: [
-    "0001000",
-    "0011100",
-    "0111110",
-    "1111111",
-    "0111110",
-    "0011100",
-    "0001000"
+    "001100",
+    "011110",
+    "111111",
+    "111111",
+    "011110",
+    "001100"
   ],
 
   crown: [
-    "1000001",
-    "1100011",
-    "1110111",
-    "1111111",
-    "0111110",
-    "0111110",
-    "0111110"
+    "10001",
+    "11011",
+    "11111",
+    "10101",
+    "11111",
+    "11111"
   ],
 
   wave: [
-    "1100000",
-    "0110000",
-    "0011000",
-    "0001100",
-    "0000110",
-    "0000011",
-    "0000001"
+    "100001",
+    "110011",
+    "011110",
+    "001100",
+    "011110",
+    "110011"
   ]
 };
 
-const patternNames = Object.keys(iconPatterns);
+const iconNames = Object.keys(iconPatterns);
 
-let currentGrid = "2x4";
-let cards = [];
+/* =========================================================
+   GAME STATE
+   ========================================================= */
+
+let board = [];
 let flippedCards = [];
 let matchedPairs = 0;
 let moves = 0;
-let isLocked = false;
-let currentPlayer = 1;
-let gameMode = "1P";
 
-const gameBoard = document.getElementById("game-board");
-const movesElement = document.getElementById("moves");
-const bestElement = document.getElementById("best");
+let isLock = false;
+
+let playerMode = 1;
+let activePlayer = 1;
+
+let scores = {
+  1: 0,
+  2: 0
+};
+
+/* =========================================================
+   DOM ELEMENTS
+   ========================================================= */
+
+const boardEl = document.getElementById("game-board");
+const moveEl = document.getElementById("move-count");
+const bestEl = document.getElementById("best-score");
+
 const gridSelect = document.getElementById("grid-select");
-const resetButton = document.getElementById("reset-button");
+const resetBtn = document.getElementById("reset-btn");
 
-const player1Score = document.getElementById("player1-score");
-const player2Score = document.getElementById("player2-score");
-const player1Panel = document.getElementById("player1-panel");
-const player2Panel = document.getElementById("player2-panel");
+const onePlayerBtn = document.getElementById("one-player");
+const twoPlayerBtn = document.getElementById("two-player");
 
-const player1Button = document.getElementById("player-1");
-const player2Button = document.getElementById("player-2");
+const p1Panel = document.getElementById("player-one-score");
+const p2Panel = document.getElementById("player-two-score");
+
+const p1ScoreEl = document.getElementById("p1-score");
+const p2ScoreEl = document.getElementById("p2-score");
 
 const victoryOverlay = document.getElementById("victory-overlay");
-const victoryTitle = document.getElementById("victory-title");
-const playAgainButton = document.getElementById("play-again");
+const victoryMoves = document.getElementById("victory-moves");
+const victoryBest = document.getElementById("victory-best-score");
 
+const playAgainBtn = document.getElementById("play-again-btn");
 
-// --------------------------------------------------
-// Utility
-// --------------------------------------------------
+/* =========================================================
+   SHUFFLE
+   ========================================================= */
 
 function shuffle(array) {
-  const result = [...array];
+  const copy = [...array];
 
-  for (let i = result.length - 1; i > 0; i--) {
+  for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
 
-    [result[i], result[j]] = [result[j], result[i]];
+    [copy[i], copy[j]] = [copy[j], copy[i]];
   }
 
-  return result;
+  return copy;
 }
 
+/* =========================================================
+   DOT ICON CREATION
+   ========================================================= */
 
-function getPairCount() {
-  const parts = currentGrid.split("x");
-
-  const rows = Number(parts[0]);
-  const columns = Number(parts[1]);
-
-  return (rows * columns) / 2;
-}
-
-
-function getGridClass() {
-  return `grid-${currentGrid.replace("x", "-")}`;
-}
-
-
-// --------------------------------------------------
-// Dot icons
-// --------------------------------------------------
-
-function createDotIcon(patternName, extraClass = "") {
-  const pattern = iconPatterns[patternName];
-
+function createDotIcon(pattern, extraClass = "") {
   const icon = document.createElement("span");
 
   icon.className = `dot-icon ${extraClass}`;
@@ -196,436 +189,671 @@ function createDotIcon(patternName, extraClass = "") {
   return icon;
 }
 
+/* =========================================================
+   QUESTION MARK
+   ========================================================= */
 
 function createQuestionMark() {
-  const question = document.createElement("span");
+  const pattern = [
+    "01110",
+    "10001",
+    "00010",
+    "00100",
+    "00000",
+    "00100"
+  ];
 
-  question.className = "question-mark";
-
-  question.textContent = "?";
-
-  return question;
+  return createDotIcon(pattern);
 }
 
+/* =========================================================
+   DOT TEXT
+   ========================================================= */
 
-// --------------------------------------------------
-// Game initialization
-// --------------------------------------------------
+function setDotText(element, value) {
+  if (!element) return;
+
+  element.dataset.text = String(value);
+  element.textContent = String(value);
+}
+
+/* =========================================================
+   INITIALIZE GAME
+   ========================================================= */
 
 function initGame() {
-  currentGrid = gridSelect.value;
 
-  cards = [];
+  const gridValue = gridSelect.value;
+
+  const [rows, cols] =
+    gridValue.split("x").map(Number);
+
+  document.documentElement.style.setProperty(
+    "--cols",
+    cols
+  );
+
+  document.documentElement.style.setProperty(
+    "--rows",
+    rows
+  );
+
+  const totalCards = rows * cols;
+  const numberOfPairs = totalCards / 2;
+
+  const selectedIcons =
+    iconNames.slice(0, numberOfPairs);
+
+  board = shuffle([
+    ...selectedIcons,
+    ...selectedIcons
+  ]);
+
+  boardEl.innerHTML = "";
+
   flippedCards = [];
   matchedPairs = 0;
   moves = 0;
-  isLocked = false;
-  currentPlayer = 1;
 
-  gameBoard.innerHTML = "";
+  isLock = false;
 
-  gameBoard.className = `game-board ${getGridClass()}`;
+  activePlayer = 1;
+
+  scores = {
+    1: 0,
+    2: 0
+  };
+
+  updateMoveDisplay();
+  updateScoreDisplay();
+  updatePlayerPanels();
 
   hideVictory();
 
-  updateMoves();
-  updatePlayerDisplay();
+  const savedBest =
+    localStorage.getItem(`best_${gridValue}`);
 
-  const pairCount = getPairCount();
+  if (savedBest) {
+    bestEl.textContent = savedBest;
+  } else {
+    bestEl.textContent = "-";
+  }
 
-  const selectedPatterns = patternNames.slice(0, pairCount);
+  board.forEach((symbol, index) => {
 
-  const deck = [];
+    const card =
+      createCard(symbol, index);
 
-  selectedPatterns.forEach(patternName => {
-    deck.push(patternName);
-    deck.push(patternName);
+    boardEl.appendChild(card);
   });
-
-  const shuffledDeck = shuffle(deck);
-
-  shuffledDeck.forEach((patternName, index) => {
-    const card = createCard(patternName, index);
-
-    cards.push(card);
-
-    gameBoard.appendChild(card);
-  });
-
-  updateBestScore();
 }
 
+/* =========================================================
+   CREATE CARD
+   ========================================================= */
 
-// --------------------------------------------------
-// Card creation
-// --------------------------------------------------
+function createCard(symbol, index) {
 
-function createCard(patternName, index) {
-  const card = document.createElement("button");
+  const card =
+    document.createElement("button");
 
   card.type = "button";
-  card.className = "card";
-  card.dataset.index = index;
-  card.dataset.icon = patternName;
 
-  const inner = document.createElement("span");
+  card.className = "card";
+
+  card.dataset.symbol = symbol;
+  card.dataset.index = index;
+
+  card.setAttribute(
+    "aria-label",
+    "Hidden memory card"
+  );
+
+  const inner =
+    document.createElement("span");
 
   inner.className = "card-inner";
 
-  const back = document.createElement("span");
+  /* BACK */
 
-  back.className = "card-face card-back";
+  const back =
+    document.createElement("span");
 
-  back.appendChild(createQuestionMark());
+  back.className =
+    "card-face card-back";
 
-  const front = document.createElement("span");
+  back.appendChild(
+    createQuestionMark()
+  );
 
-  front.className = "card-face card-front";
+  /* FRONT */
 
-  front.appendChild(createDotIcon(patternName));
+  const front =
+    document.createElement("span");
+
+  front.className =
+    "card-face card-front";
+
+  front.appendChild(
+    createDotIcon(
+      iconPatterns[symbol]
+    )
+  );
 
   inner.appendChild(back);
   inner.appendChild(front);
 
   card.appendChild(inner);
 
-  card.addEventListener("click", () => {
-    handleCardClick(card);
-  });
+  card.addEventListener(
+    "click",
+    handleCardClick
+  );
 
   return card;
 }
 
+/* =========================================================
+   CARD CLICK
+   ========================================================= */
 
-// --------------------------------------------------
-// Card interaction
-// --------------------------------------------------
+function handleCardClick(event) {
 
-function handleCardClick(card) {
-  if (isLocked) {
+  const card =
+    event.currentTarget;
+
+  /*
+   Do not allow another card while
+   two cards are being checked.
+  */
+
+  if (isLock) {
     return;
   }
 
-  if (card.classList.contains("flipped")) {
-    return;
-  }
-
-  if (card.classList.contains("matched")) {
-    return;
-  }
-
-  if (flippedCards.length >= 2) {
+  if (
+    card.classList.contains("flipped") ||
+    card.classList.contains("matched")
+  ) {
     return;
   }
 
   card.classList.add("flipped");
 
+  card.setAttribute(
+    "aria-label",
+    "Revealed memory card"
+  );
+
   flippedCards.push(card);
 
+  /*
+   Two cards selected:
+   this is one complete turn.
+  */
+
   if (flippedCards.length === 2) {
+
     moves++;
 
-    updateMoves();
+    updateMoveDisplay();
 
     checkMatch();
   }
 }
 
-
-// --------------------------------------------------
-// Matching
-// --------------------------------------------------
+/* =========================================================
+   CHECK MATCH
+   ========================================================= */
 
 function checkMatch() {
-  const firstCard = flippedCards[0];
-  const secondCard = flippedCards[1];
 
-  const firstIcon = firstCard.dataset.icon;
-  const secondIcon = secondCard.dataset.icon;
+  const card1 = flippedCards[0];
+  const card2 = flippedCards[1];
 
-  isLocked = true;
+  if (!card1 || !card2) {
+    return;
+  }
 
-  if (firstIcon === secondIcon) {
-    setTimeout(() => {
-      firstCard.classList.add("matched");
-      secondCard.classList.add("matched");
+  const isMatch =
+    card1.dataset.symbol ===
+    card2.dataset.symbol;
 
-      matchedPairs++;
+  /*
+   MATCH
+  */
 
-      addPlayerPoint();
+  if (isMatch) {
 
-      flippedCards = [];
+    card1.classList.add("matched");
+    card2.classList.add("matched");
 
-      isLocked = false;
+    matchedPairs++;
 
-      if (matchedPairs === getPairCount()) {
-        finishGame();
-      }
-    }, 350);
+    /*
+     Give the point to the player
+     whose turn it currently is.
+    */
 
-  } else {
-    firstCard.classList.add("wrong");
-    secondCard.classList.add("wrong");
+    scores[activePlayer]++;
 
-    setTimeout(() => {
-      firstCard.classList.remove("flipped", "wrong");
-      secondCard.classList.remove("flipped", "wrong");
+    updateScoreDisplay();
 
-      flippedCards = [];
+    flippedCards = [];
 
+    /*
+     IMPORTANT:
+     Unlock immediately after a match.
+     This prevents the game from stopping.
+    */
+
+    isLock = false;
+
+    const gridValue =
+      gridSelect.value;
+
+    const [rows, cols] =
+      gridValue.split("x").map(Number);
+
+    const totalPairs =
+      (rows * cols) / 2;
+
+    /*
+     Check if game is complete.
+    */
+
+    if (matchedPairs === totalPairs) {
+
+      updateBestScore(
+        gridValue,
+        moves
+      );
+
+      setTimeout(() => {
+        showVictory();
+      }, 450);
+
+      return;
+    }
+
+    /*
+     2 PLAYER:
+     A successful match still ends
+     that player's turn.
+    */
+
+    if (playerMode === 2) {
       switchPlayer();
+    }
 
-      isLocked = false;
-    }, 850);
-  }
-}
-
-
-// --------------------------------------------------
-// Players
-// --------------------------------------------------
-
-function addPlayerPoint() {
-  const scoreElement =
-    currentPlayer === 1
-      ? player1Score
-      : player2Score;
-
-  const currentScore =
-    Number(scoreElement.dataset.score || 0) + 1;
-
-  scoreElement.dataset.score = currentScore;
-
-  setDotText(scoreElement, currentScore);
-}
-
-
-function switchPlayer() {
-  if (gameMode !== "2P") {
     return;
   }
 
-  currentPlayer = currentPlayer === 1 ? 2 : 1;
+  /*
+   WRONG MATCH
+  */
 
-  updatePlayerDisplay();
-}
+  isLock = true;
 
+  card1.classList.add(
+    "match-error"
+  );
 
-function updatePlayerDisplay() {
-  if (player1Panel) {
-    player1Panel.classList.toggle(
-      "active",
-      currentPlayer === 1
-    );
-  }
-
-  if (player2Panel) {
-    player2Panel.classList.toggle(
-      "active",
-      currentPlayer === 2
-    );
-  }
-}
-
-
-// --------------------------------------------------
-// Text / stats
-// --------------------------------------------------
-
-function setDotText(element, value) {
-  if (!element) {
-    return;
-  }
-
-  element.textContent = value;
-  element.dataset.text = value;
-}
-
-
-function updateMoves() {
-  if (!movesElement) {
-    return;
-  }
-
-  setDotText(movesElement, moves);
-}
-
-
-function getBestKey() {
-  return `icon-matcher-best-${currentGrid}`;
-}
-
-
-function updateBestScore() {
-  if (!bestElement) {
-    return;
-  }
-
-  const best = localStorage.getItem(getBestKey());
-
-  if (best === null) {
-    setDotText(bestElement, "--");
-  } else {
-    setDotText(bestElement, best);
-  }
-}
-
-
-function saveBestScore() {
-  const oldBest = localStorage.getItem(getBestKey());
-
-  if (oldBest === null || moves < Number(oldBest)) {
-    localStorage.setItem(getBestKey(), moves);
-
-    updateBestScore();
-  }
-}
-
-
-// --------------------------------------------------
-// Victory
-// --------------------------------------------------
-
-function finishGame() {
-  saveBestScore();
+  card2.classList.add(
+    "match-error"
+  );
 
   setTimeout(() => {
-    showVictory();
-  }, 500);
+
+    card1.classList.remove(
+      "flipped",
+      "match-error"
+    );
+
+    card2.classList.remove(
+      "flipped",
+      "match-error"
+    );
+
+    card1.setAttribute(
+      "aria-label",
+      "Hidden memory card"
+    );
+
+    card2.setAttribute(
+      "aria-label",
+      "Hidden memory card"
+    );
+
+    flippedCards = [];
+
+    /*
+     Unlock before changing player.
+    */
+
+    isLock = false;
+
+    /*
+     Wrong pair also ends the turn.
+    */
+
+    if (playerMode === 2) {
+      switchPlayer();
+    }
+
+  }, 760);
 }
 
+/* =========================================================
+   SWITCH PLAYER
+   ========================================================= */
 
-function showVictory() {
+function switchPlayer() {
+
+  if (playerMode !== 2) {
+    return;
+  }
+
+  if (activePlayer === 1) {
+    activePlayer = 2;
+  } else {
+    activePlayer = 1;
+  }
+
+  updatePlayerPanels();
+}
+
+/* =========================================================
+   PLAYER PANELS
+   ========================================================= */
+
+function updatePlayerPanels() {
+
+  if (!p1Panel || !p2Panel) {
+    return;
+  }
+
+  /*
+   P1 active when it is P1's turn.
+  */
+
+  p1Panel.classList.toggle(
+    "active",
+    activePlayer === 1
+  );
+
+  /*
+   P2 active only during 2P mode.
+  */
+
+  p2Panel.classList.toggle(
+    "active",
+    playerMode === 2 &&
+    activePlayer === 2
+  );
+
+  /*
+   In 1P mode P1 is always active.
+  */
+
+  if (playerMode === 1) {
+
+    p1Panel.classList.add(
+      "active"
+    );
+
+    p2Panel.classList.remove(
+      "active"
+    );
+  }
+
+  setDotText(
+    p1ScoreEl,
+    scores[1]
+  );
+
+  setDotText(
+    p2ScoreEl,
+    scores[2]
+  );
+}
+
+/* =========================================================
+   SCORE DISPLAY
+   ========================================================= */
+
+function updateScoreDisplay() {
+
+  setDotText(
+    p1ScoreEl,
+    scores[1]
+  );
+
+  setDotText(
+    p2ScoreEl,
+    scores[2]
+  );
+
+  updatePlayerPanels();
+}
+
+/* =========================================================
+   MOVE DISPLAY
+   ========================================================= */
+
+function updateMoveDisplay() {
+
+  if (!moveEl) {
+    return;
+  }
+
+  moveEl.textContent =
+    String(moves);
+}
+
+/* =========================================================
+   BEST SCORE
+   ========================================================= */
+
+function updateBestScore(
+  gridKey,
+  currentMoves
+) {
+
+  const oldBest =
+    localStorage.getItem(
+      `best_${gridKey}`
+    );
+
+  if (
+    !oldBest ||
+    currentMoves < Number(oldBest)
+  ) {
+
+    localStorage.setItem(
+      `best_${gridKey}`,
+      currentMoves
+    );
+
+    bestEl.textContent =
+      String(currentMoves);
+  }
+}
+
+/* =========================================================
+   PLAYER MODE
+   ========================================================= */
+
+function setPlayerMode(mode) {
+
+  playerMode = mode;
+
+  /*
+   Update buttons.
+  */
+
+  if (onePlayerBtn) {
+
+    onePlayerBtn.classList.toggle(
+      "active",
+      mode === 1
+    );
+
+    onePlayerBtn.setAttribute(
+      "aria-pressed",
+      String(mode === 1)
+    );
+  }
+
+  if (twoPlayerBtn) {
+
+    twoPlayerBtn.classList.toggle(
+      "active",
+      mode === 2
+    );
+
+    twoPlayerBtn.setAttribute(
+      "aria-pressed",
+      String(mode === 2)
+    );
+  }
+
+  /*
+   Always start a new mode with P1.
+  */
+
+  activePlayer = 1;
+
+  updatePlayerPanels();
+}
+
+/* =========================================================
+   1 PLAYER BUTTON
+   ========================================================= */
+
+if (onePlayerBtn) {
+
+  onePlayerBtn.addEventListener(
+    "click",
+    () => {
+
+      /*
+       Switching mode starts
+       a fresh game.
+      */
+
+      playerMode = 1;
+
+      initGame();
+    }
+  );
+}
+
+/* =========================================================
+   2 PLAYER BUTTON
+   ========================================================= */
+
+if (twoPlayerBtn) {
+
+  twoPlayerBtn.addEventListener(
+    "click",
+    () => {
+
+      /*
+       Enable 2-player mode
+       and start with Player 1.
+      */
+
+      playerMode = 2;
+
+      initGame();
+    }
+  );
+}
+
+/* =========================================================
+   GRID CHANGE
+   ========================================================= */
+
+if (gridSelect) {
+
+  gridSelect.addEventListener(
+    "change",
+    () => {
+
+      initGame();
+    }
+  );
+}
+
+/* =========================================================
+   RESET
+   ========================================================= */
+
+if (resetBtn) {
+
+  resetBtn.addEventListener(
+    "click",
+    () => {
+
+      initGame();
+    }
+  );
+}
+
+/* =========================================================
+   VICTORY
+   ========================================================= */
+
+function hideVictory() {
+
   if (!victoryOverlay) {
     return;
   }
 
-  if (victoryTitle) {
-    if (gameMode === "2P") {
-      const score1 =
-        Number(player1Score?.dataset.score || 0);
+  victoryOverlay.hidden = true;
+}
 
-      const score2 =
-        Number(player2Score?.dataset.score || 0);
+function showVictory() {
 
-      if (score1 > score2) {
-        victoryTitle.textContent = "P1 WINS";
-      } else if (score2 > score1) {
-        victoryTitle.textContent = "P2 WINS";
-      } else {
-        victoryTitle.textContent = "DRAW";
-      }
-    } else {
-      victoryTitle.textContent = "COMPLETE";
+  if (!victoryOverlay) {
+    return;
+  }
+
+  if (victoryMoves) {
+
+    victoryMoves.textContent =
+      String(moves);
+  }
+
+  if (victoryBest) {
+
+    victoryBest.textContent =
+      bestEl.textContent;
+  }
+
+  victoryOverlay.hidden = false;
+}
+
+/* =========================================================
+   PLAY AGAIN
+   ========================================================= */
+
+if (playAgainBtn) {
+
+  playAgainBtn.addEventListener(
+    "click",
+    () => {
+
+      initGame();
     }
-  }
-
-  victoryOverlay.classList.add("show");
+  );
 }
 
+/* =========================================================
+   START GAME
+   ========================================================= */
 
-function hideVictory() {
-  if (victoryOverlay) {
-    victoryOverlay.classList.remove("show");
-  }
-}
+setPlayerMode(1);
 
-
-// --------------------------------------------------
-// Reset scores
-// --------------------------------------------------
-
-function resetPlayerScores() {
-  if (player1Score) {
-    player1Score.dataset.score = "0";
-    setDotText(player1Score, "0");
-  }
-
-  if (player2Score) {
-    player2Score.dataset.score = "0";
-    setDotText(player2Score, "0");
-  }
-}
-
-
-// --------------------------------------------------
-// Mode buttons
-// --------------------------------------------------
-
-function setGameMode(mode) {
-  gameMode = mode;
-
-  if (player1Button) {
-    player1Button.classList.toggle(
-      "active",
-      mode === "1P"
-    );
-  }
-
-  if (player2Button) {
-    player2Button.classList.toggle(
-      "active",
-      mode === "2P"
-    );
-  }
-
-  resetPlayerScores();
-
-  currentPlayer = 1;
-
-  updatePlayerDisplay();
-
-  initGame();
-}
-
-
-// --------------------------------------------------
-// Event listeners
-// --------------------------------------------------
-
-if (gridSelect) {
-  gridSelect.addEventListener("change", () => {
-    initGame();
-  });
-}
-
-
-if (resetButton) {
-  resetButton.addEventListener("click", () => {
-    resetPlayerScores();
-
-    initGame();
-  });
-}
-
-
-if (playAgainButton) {
-  playAgainButton.addEventListener("click", () => {
-    resetPlayerScores();
-
-    initGame();
-  });
-}
-
-
-if (player1Button) {
-  player1Button.addEventListener("click", () => {
-    setGameMode("1P");
-  });
-}
-
-
-if (player2Button) {
-  player2Button.addEventListener("click", () => {
-    setGameMode("2P");
-  });
-}
-
-
-// --------------------------------------------------
-// Start game
-// --------------------------------------------------
-
-resetPlayerScores();
-
-setGameMode("1P");
+initGame();
