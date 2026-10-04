@@ -1,101 +1,631 @@
-const icons = ['🐶', '🐱', '🦊', '🐼', '🦁', '🐯', '🐻', '🐨', '🐸', '🐵'];
+// Icon Matcher - Game Logic
 
-let board = [];
+const iconPatterns = {
+  heart: [
+    "0110110",
+    "1111111",
+    "1111111",
+    "0111110",
+    "0011100",
+    "0001000"
+  ],
+
+  shield: [
+    "0111110",
+    "1111111",
+    "1111111",
+    "1111111",
+    "0111110",
+    "0011100",
+    "0001000"
+  ],
+
+  star: [
+    "0010000",
+    "0010000",
+    "1111111",
+    "0111110",
+    "0011100",
+    "0101010",
+    "1000001"
+  ],
+
+  grid: [
+    "1111111",
+    "1010101",
+    "1111111",
+    "1010101",
+    "1111111",
+    "1010101",
+    "1111111"
+  ],
+
+  circle: [
+    "0011100",
+    "0111110",
+    "1100011",
+    "1100011",
+    "1100011",
+    "0111110",
+    "0011100"
+  ],
+
+  bolt: [
+    "0001100",
+    "0011100",
+    "0111000",
+    "1111111",
+    "0011100",
+    "0011000",
+    "0010000"
+  ],
+
+  arrow: [
+    "0010000",
+    "0011000",
+    "0011100",
+    "1111111",
+    "0011100",
+    "0011000",
+    "0010000"
+  ],
+
+  diamond: [
+    "0001000",
+    "0011100",
+    "0111110",
+    "1111111",
+    "0111110",
+    "0011100",
+    "0001000"
+  ],
+
+  crown: [
+    "1000001",
+    "1100011",
+    "1110111",
+    "1111111",
+    "0111110",
+    "0111110",
+    "0111110"
+  ],
+
+  wave: [
+    "1100000",
+    "0110000",
+    "0011000",
+    "0001100",
+    "0000110",
+    "0000011",
+    "0000001"
+  ]
+};
+
+const patternNames = Object.keys(iconPatterns);
+
+let currentGrid = "2x4";
+let cards = [];
 let flippedCards = [];
 let matchedPairs = 0;
 let moves = 0;
-let isLock = false;
+let isLocked = false;
+let currentPlayer = 1;
+let gameMode = "1P";
 
-const boardEl = document.getElementById('game-board');
-const moveEl = document.getElementById('move-count');
-const bestEl = document.getElementById('best-score');
-const gridSelect = document.getElementById('grid-select');
-const resetBtn = document.getElementById('reset-btn');
+const gameBoard = document.getElementById("game-board");
+const movesElement = document.getElementById("moves");
+const bestElement = document.getElementById("best");
+const gridSelect = document.getElementById("grid-select");
+const resetButton = document.getElementById("reset-button");
+
+const player1Score = document.getElementById("player1-score");
+const player2Score = document.getElementById("player2-score");
+const player1Panel = document.getElementById("player1-panel");
+const player2Panel = document.getElementById("player2-panel");
+
+const player1Button = document.getElementById("player-1");
+const player2Button = document.getElementById("player-2");
+
+const victoryOverlay = document.getElementById("victory-overlay");
+const victoryTitle = document.getElementById("victory-title");
+const playAgainButton = document.getElementById("play-again");
+
+
+// --------------------------------------------------
+// Utility
+// --------------------------------------------------
+
+function shuffle(array) {
+  const result = [...array];
+
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+
+  return result;
+}
+
+
+function getPairCount() {
+  const parts = currentGrid.split("x");
+
+  const rows = Number(parts[0]);
+  const columns = Number(parts[1]);
+
+  return (rows * columns) / 2;
+}
+
+
+function getGridClass() {
+  return `grid-${currentGrid.replace("x", "-")}`;
+}
+
+
+// --------------------------------------------------
+// Dot icons
+// --------------------------------------------------
+
+function createDotIcon(patternName, extraClass = "") {
+  const pattern = iconPatterns[patternName];
+
+  const icon = document.createElement("span");
+
+  icon.className = `dot-icon ${extraClass}`;
+
+  const columns = pattern[0].length;
+
+  icon.style.gridTemplateColumns =
+    `repeat(${columns}, var(--dot))`;
+
+  pattern.forEach(row => {
+    [...row].forEach(value => {
+      const dot = document.createElement("span");
+
+      dot.className = "dot";
+
+      if (value === "0") {
+        dot.style.visibility = "hidden";
+      }
+
+      icon.appendChild(dot);
+    });
+  });
+
+  return icon;
+}
+
+
+function createQuestionMark() {
+  const question = document.createElement("span");
+
+  question.className = "question-mark";
+
+  question.textContent = "?";
+
+  return question;
+}
+
+
+// --------------------------------------------------
+// Game initialization
+// --------------------------------------------------
 
 function initGame() {
-  const gridValue = gridSelect.value;
-  const [rows, cols] = gridValue.split('x').map(Number);
-  document.documentElement.style.setProperty('--cols', cols);
-  
-  const totalCards = rows * cols;
-  const numPairs = totalCards / 2;
-  
-  const selectedIcons = icons.slice(0, numPairs);
-  board = [...selectedIcons, ...selectedIcons].sort(() => Math.random() - 0.5);
-  
-  boardEl.innerHTML = '';
+  currentGrid = gridSelect.value;
+
+  cards = [];
   flippedCards = [];
   matchedPairs = 0;
   moves = 0;
-  isLock = false;
-  moveEl.textContent = moves;
+  isLocked = false;
+  currentPlayer = 1;
 
-  // Load Best Score from LocalStorage
-  const savedBest = localStorage.getItem(`best_${gridValue}`);
-  bestEl.textContent = savedBest ? savedBest : '-';
+  gameBoard.innerHTML = "";
 
-  board.forEach((symbol, index) => {
-    const card = document.createElement('div');
-    card.classList.add('card');
-    card.dataset.symbol = symbol;
-    card.textContent = '❓';
-    card.addEventListener('click', handleCardClick);
-    boardEl.appendChild(card);
+  gameBoard.className = `game-board ${getGridClass()}`;
+
+  hideVictory();
+
+  updateMoves();
+  updatePlayerDisplay();
+
+  const pairCount = getPairCount();
+
+  const selectedPatterns = patternNames.slice(0, pairCount);
+
+  const deck = [];
+
+  selectedPatterns.forEach(patternName => {
+    deck.push(patternName);
+    deck.push(patternName);
   });
+
+  const shuffledDeck = shuffle(deck);
+
+  shuffledDeck.forEach((patternName, index) => {
+    const card = createCard(patternName, index);
+
+    cards.push(card);
+
+    gameBoard.appendChild(card);
+  });
+
+  updateBestScore();
 }
 
-function handleCardClick(e) {
-  const card = e.currentTarget;
-  if (isLock || card.classList.contains('flipped') || card.classList.contains('matched')) return;
 
-  card.classList.add('flipped');
-  card.textContent = card.dataset.symbol;
+// --------------------------------------------------
+// Card creation
+// --------------------------------------------------
+
+function createCard(patternName, index) {
+  const card = document.createElement("button");
+
+  card.type = "button";
+  card.className = "card";
+  card.dataset.index = index;
+  card.dataset.icon = patternName;
+
+  const inner = document.createElement("span");
+
+  inner.className = "card-inner";
+
+  const back = document.createElement("span");
+
+  back.className = "card-face card-back";
+
+  back.appendChild(createQuestionMark());
+
+  const front = document.createElement("span");
+
+  front.className = "card-face card-front";
+
+  front.appendChild(createDotIcon(patternName));
+
+  inner.appendChild(back);
+  inner.appendChild(front);
+
+  card.appendChild(inner);
+
+  card.addEventListener("click", () => {
+    handleCardClick(card);
+  });
+
+  return card;
+}
+
+
+// --------------------------------------------------
+// Card interaction
+// --------------------------------------------------
+
+function handleCardClick(card) {
+  if (isLocked) {
+    return;
+  }
+
+  if (card.classList.contains("flipped")) {
+    return;
+  }
+
+  if (card.classList.contains("matched")) {
+    return;
+  }
+
+  if (flippedCards.length >= 2) {
+    return;
+  }
+
+  card.classList.add("flipped");
+
   flippedCards.push(card);
 
   if (flippedCards.length === 2) {
     moves++;
-    moveEl.textContent = moves;
+
+    updateMoves();
+
     checkMatch();
   }
 }
 
+
+// --------------------------------------------------
+// Matching
+// --------------------------------------------------
+
 function checkMatch() {
-  const [card1, card2] = flippedCards;
-  if (card1.dataset.symbol === card2.dataset.symbol) {
-    card1.classList.add('matched');
-    card2.classList.add('matched');
-    flippedCards = [];
-    matchedPairs++;
-    
-    const gridValue = gridSelect.value;
-    const [rows, cols] = gridValue.split('x').map(Number);
-    if (matchedPairs === (rows * cols) / 2) {
-      updateBestScore(gridValue, moves);
-      setTimeout(() => alert(`🎉 Cleared in ${moves} moves!`), 300);
-    }
-  } else {
-    isLock = true;
+  const firstCard = flippedCards[0];
+  const secondCard = flippedCards[1];
+
+  const firstIcon = firstCard.dataset.icon;
+  const secondIcon = secondCard.dataset.icon;
+
+  isLocked = true;
+
+  if (firstIcon === secondIcon) {
     setTimeout(() => {
-      card1.classList.remove('flipped');
-      card2.classList.remove('flipped');
-      card1.textContent = '❓';
-      card2.textContent = '❓';
+      firstCard.classList.add("matched");
+      secondCard.classList.add("matched");
+
+      matchedPairs++;
+
+      addPlayerPoint();
+
       flippedCards = [];
-      isLock = false;
-    }, 800);
+
+      isLocked = false;
+
+      if (matchedPairs === getPairCount()) {
+        finishGame();
+      }
+    }, 350);
+
+  } else {
+    firstCard.classList.add("wrong");
+    secondCard.classList.add("wrong");
+
+    setTimeout(() => {
+      firstCard.classList.remove("flipped", "wrong");
+      secondCard.classList.remove("flipped", "wrong");
+
+      flippedCards = [];
+
+      switchPlayer();
+
+      isLocked = false;
+    }, 850);
   }
 }
 
-function updateBestScore(gridKey, currentMoves) {
-  const currentBest = localStorage.getItem(`best_${gridKey}`);
-  if (!currentBest || currentMoves < Number(currentBest)) {
-    localStorage.setItem(`best_${gridKey}`, currentMoves);
-    bestEl.textContent = currentMoves;
+
+// --------------------------------------------------
+// Players
+// --------------------------------------------------
+
+function addPlayerPoint() {
+  const scoreElement =
+    currentPlayer === 1
+      ? player1Score
+      : player2Score;
+
+  const currentScore =
+    Number(scoreElement.dataset.score || 0) + 1;
+
+  scoreElement.dataset.score = currentScore;
+
+  setDotText(scoreElement, currentScore);
+}
+
+
+function switchPlayer() {
+  if (gameMode !== "2P") {
+    return;
+  }
+
+  currentPlayer = currentPlayer === 1 ? 2 : 1;
+
+  updatePlayerDisplay();
+}
+
+
+function updatePlayerDisplay() {
+  if (player1Panel) {
+    player1Panel.classList.toggle(
+      "active",
+      currentPlayer === 1
+    );
+  }
+
+  if (player2Panel) {
+    player2Panel.classList.toggle(
+      "active",
+      currentPlayer === 2
+    );
   }
 }
 
-gridSelect.addEventListener('change', initGame);
-resetBtn.addEventListener('click', initGame);
 
-initGame();
-        
+// --------------------------------------------------
+// Text / stats
+// --------------------------------------------------
+
+function setDotText(element, value) {
+  if (!element) {
+    return;
+  }
+
+  element.textContent = value;
+  element.dataset.text = value;
+}
+
+
+function updateMoves() {
+  if (!movesElement) {
+    return;
+  }
+
+  setDotText(movesElement, moves);
+}
+
+
+function getBestKey() {
+  return `icon-matcher-best-${currentGrid}`;
+}
+
+
+function updateBestScore() {
+  if (!bestElement) {
+    return;
+  }
+
+  const best = localStorage.getItem(getBestKey());
+
+  if (best === null) {
+    setDotText(bestElement, "--");
+  } else {
+    setDotText(bestElement, best);
+  }
+}
+
+
+function saveBestScore() {
+  const oldBest = localStorage.getItem(getBestKey());
+
+  if (oldBest === null || moves < Number(oldBest)) {
+    localStorage.setItem(getBestKey(), moves);
+
+    updateBestScore();
+  }
+}
+
+
+// --------------------------------------------------
+// Victory
+// --------------------------------------------------
+
+function finishGame() {
+  saveBestScore();
+
+  setTimeout(() => {
+    showVictory();
+  }, 500);
+}
+
+
+function showVictory() {
+  if (!victoryOverlay) {
+    return;
+  }
+
+  if (victoryTitle) {
+    if (gameMode === "2P") {
+      const score1 =
+        Number(player1Score?.dataset.score || 0);
+
+      const score2 =
+        Number(player2Score?.dataset.score || 0);
+
+      if (score1 > score2) {
+        victoryTitle.textContent = "P1 WINS";
+      } else if (score2 > score1) {
+        victoryTitle.textContent = "P2 WINS";
+      } else {
+        victoryTitle.textContent = "DRAW";
+      }
+    } else {
+      victoryTitle.textContent = "COMPLETE";
+    }
+  }
+
+  victoryOverlay.classList.add("show");
+}
+
+
+function hideVictory() {
+  if (victoryOverlay) {
+    victoryOverlay.classList.remove("show");
+  }
+}
+
+
+// --------------------------------------------------
+// Reset scores
+// --------------------------------------------------
+
+function resetPlayerScores() {
+  if (player1Score) {
+    player1Score.dataset.score = "0";
+    setDotText(player1Score, "0");
+  }
+
+  if (player2Score) {
+    player2Score.dataset.score = "0";
+    setDotText(player2Score, "0");
+  }
+}
+
+
+// --------------------------------------------------
+// Mode buttons
+// --------------------------------------------------
+
+function setGameMode(mode) {
+  gameMode = mode;
+
+  if (player1Button) {
+    player1Button.classList.toggle(
+      "active",
+      mode === "1P"
+    );
+  }
+
+  if (player2Button) {
+    player2Button.classList.toggle(
+      "active",
+      mode === "2P"
+    );
+  }
+
+  resetPlayerScores();
+
+  currentPlayer = 1;
+
+  updatePlayerDisplay();
+
+  initGame();
+}
+
+
+// --------------------------------------------------
+// Event listeners
+// --------------------------------------------------
+
+if (gridSelect) {
+  gridSelect.addEventListener("change", () => {
+    initGame();
+  });
+}
+
+
+if (resetButton) {
+  resetButton.addEventListener("click", () => {
+    resetPlayerScores();
+
+    initGame();
+  });
+}
+
+
+if (playAgainButton) {
+  playAgainButton.addEventListener("click", () => {
+    resetPlayerScores();
+
+    initGame();
+  });
+}
+
+
+if (player1Button) {
+  player1Button.addEventListener("click", () => {
+    setGameMode("1P");
+  });
+}
+
+
+if (player2Button) {
+  player2Button.addEventListener("click", () => {
+    setGameMode("2P");
+  });
+}
+
+
+// --------------------------------------------------
+// Start game
+// --------------------------------------------------
+
+resetPlayerScores();
+
+setGameMode("1P");
