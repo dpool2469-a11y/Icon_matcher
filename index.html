@@ -2,42 +2,87 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Icon Matcher</title>
-  
-  <!-- PWA Settings -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#e9e9e9" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-
-  <link rel="stylesheet" href="style.css" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="light" />
+  <title>Icon Matcher</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="Style.css" />
 </head>
+
 <body>
-  <div class="game-container">
-    <header class="game-header">
-      <h2>🧠 Icon Matcher</h2>
-      <div class="controls">
-        <select id="grid-select">
-          <option value="2x4">2×4 Grid</option>
-          <option value="4x4" selected>4×4 Grid</option>
-          <option value="4x5">4×5 Grid</option>
-        </select>
-        <button id="reset-btn">🔄 Reset</button>
-      </div>
-      <div class="stats">
-        <span>Moves: <strong id="move-count">0</strong></span>
-        <span>Best: <strong id="best-score">-</strong></span>
-      </div>
-    </header>
+  <main class="app-shell">
+    <section class="matcher-widget" aria-label="Icon Matcher">
 
-    <main id="game-board" class="game-board"></main>
+      <header class="widget-controls">
+        <div class="player-toggle" role="group" aria-label="Players">
+          <button class="mode-btn active" id="one-player" type="button" aria-pressed="true">
+            <span class="dot-text" data-text="1P">1P</span>
+          </button>
+          <button class="mode-btn" id="two-player" type="button" aria-pressed="false">
+            <span class="dot-text" data-text="2P">2P</span>
+          </button>
+        </div>
 
-    <!-- Ad Placeholder / Monetization Container -->
-    <div id="ad-container" class="ad-container">
-      <p class="ad-label">Advertisement Space</p>
-    </div>
-  </div>
+        <label class="grid-control">
+          <span class="sr-only">Grid size</span>
+          <select id="grid-select" aria-label="Grid size">
+            <option value="2x4">2×4</option>
+            <option value="4x4" selected>4×4</option>
+            <option value="4x5">4×5</option>
+          </select>
+          <span class="select-arrow" aria-hidden="true"></span>
+        </label>
+
+        <button id="reset-btn" class="reset-btn" type="button" aria-label="Reset game">
+          <span class="reset-symbol" aria-hidden="true"></span>
+        </button>
+      </header>
+
+      <section class="score-row" aria-label="Game score">
+        <div class="player-score active" id="player-one-score">
+          <span class="score-label dot-text" data-text="P1">P1</span>
+          <strong class="score-value dot-text" id="p1-score" data-text="0">0</strong>
+        </div>
+        <div class="player-score" id="player-two-score">
+          <span class="score-label dot-text" data-text="P2">P2</span>
+          <strong class="score-value dot-text" id="p2-score" data-text="0">0</strong>
+          <span class="status-dot" aria-hidden="true"></span>
+        </div>
+      </section>
+
+      <section id="game-board" class="game-board" aria-label="Memory cards"></section>
+
+      <section class="game-info" aria-live="polite">
+        <div>
+          <span class="info-label">MOVES</span>
+          <strong id="move-count">0</strong>
+        </div>
+        <div>
+          <span class="info-label">BEST</span>
+          <strong id="best-score">-</strong>
+        </div>
+      </section>
+
+      <div id="victory-overlay" class="victory-overlay" hidden>
+        <div class="victory-card">
+          <span class="victory-mark" aria-hidden="true"></span>
+          <p class="victory-title">CLEAR</p>
+          <p class="victory-result">
+            <span id="victory-moves">0</span> MOVES
+          </p>
+          <p class="victory-best">
+            BEST <span id="victory-best-score">-</span>
+          </p>
+          <button id="play-again-btn" class="play-again-btn" type="button">PLAY AGAIN</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="ad-container" class="ad-container" aria-hidden="true"></div>
+  </main>
 
   <script src="script.js"></script>
 </body>

@@ -1,104 +1,642 @@
+/* =========================================================
+   ICON MATCHER
+   Monochrome dot-matrix widget
+   ========================================================= */
+
 :root {
+  --page-bg: #e9e9e9;
+  --widget: #000000;
+  --widget-soft: #151515;
+  --card-hidden: #151515;
+  --card-hidden-border: #282828;
+  --card-front: #f4f4f4;
+  --ink: #050505;
+  --white: #ffffff;
+  --muted-dot: #555555;
+  --line: #292929;
+  --red: #e31b23;
+
   --cols: 4;
-  --bg-color: #0f172a;
-  --card-bg: #1e293b;
-  --card-matched: #059669;
-  --text-color: #f8fafc;
+  --rows: 4;
+  --gap: clamp(9px, 2.2vw, 16px);
+  --widget-radius: clamp(34px, 8vw, 64px);
+  --card-radius: clamp(17px, 4vw, 28px);
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  min-height: 100%;
+  background: var(--page-bg);
 }
 
 body {
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  font-family: system-ui, -apple-system, sans-serif;
   min-height: 100vh;
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 50% 25%, #f4f4f4 0%, var(--page-bg) 62%, #dedede 100%);
+  color: var(--white);
+  font-family: Arial, Helvetica, sans-serif;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+button,
+select {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- App / widget ---------- */
+
+.app-shell {
+  width: min(100%, 760px);
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding:
+    max(18px, env(safe-area-inset-top))
+    clamp(12px, 4vw, 28px)
+    max(24px, env(safe-area-inset-bottom));
   display: flex;
+  flex-direction: column;
   justify-content: center;
-  align-items: center;
-  padding: 12px;
+  align-items: stretch;
 }
 
-.game-container {
+.matcher-widget {
+  position: relative;
   width: 100%;
-  max-width: 480px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  background: var(--widget);
+  border-radius: var(--widget-radius);
+  padding: clamp(18px, 4vw, 32px);
+  box-shadow:
+    0 28px 50px rgba(0, 0, 0, 0.20),
+    0 10px 22px rgba(0, 0, 0, 0.10);
+  overflow: hidden;
 }
 
-.game-header {
-  background: var(--card-bg);
-  padding: 14px;
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* ---------- Dot text ---------- */
+
+.dot-text {
+  color: transparent;
+  position: relative;
+  display: inline-block;
+  line-height: 1;
+  min-width: 1em;
+  font-family: monospace;
+  font-weight: 700;
 }
 
-.game-header h2 {
-  text-align: center;
-  font-size: 1.4rem;
+.dot-text::after {
+  content: attr(data-text);
+  color: #fff;
+  position: absolute;
+  inset: 0;
+  display: block;
+  font-family: "Courier New", monospace;
+  font-weight: 700;
+  letter-spacing: 0.05em;
 }
 
-.controls, .stats {
+/* Controls intentionally use a clean digital look; card symbols are true dots. */
+
+.widget-controls {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: clamp(10px, 2.5vw, 18px);
+  margin-bottom: clamp(14px, 3vw, 22px);
+}
+
+.player-toggle,
+.grid-control {
+  height: clamp(48px, 11vw, 62px);
+  border: 2px solid #292929;
+  border-radius: 999px;
+  background: #000;
+}
+
+.player-toggle {
   display: flex;
-  justify-content: space-between;
+  padding: 3px;
+}
+
+.mode-btn {
+  min-width: clamp(58px, 15vw, 82px);
+  padding: 0 14px;
+  border-radius: 999px;
+  background: transparent;
+  color: #5a5a5a;
+  transition: background 160ms ease, color 160ms ease, transform 120ms ease;
+}
+
+.mode-btn:active,
+.reset-btn:active,
+.play-again-btn:active {
+  transform: scale(0.96);
+}
+
+.mode-btn.active {
+  background: var(--white);
+  color: var(--ink);
+}
+
+.mode-btn .dot-text::after {
+  color: #5a5a5a;
+}
+
+.mode-btn.active .dot-text::after {
+  color: #000;
+}
+
+.grid-control {
+  position: relative;
+  width: fit-content;
+  min-width: clamp(118px, 29vw, 168px);
+  display: flex;
   align-items: center;
 }
 
-select, button {
-  background: #334155;
+.grid-control select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 100%;
+  padding: 0 clamp(34px, 8vw, 46px) 0 20px;
+  border: 0;
+  outline: 0;
+  border-radius: inherit;
+  background: transparent;
   color: #fff;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-weight: bold;
-  font-size: 0.9rem;
+  font-family: "Courier New", monospace;
+  font-size: clamp(17px, 4.2vw, 25px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
+
+.grid-control select option {
+  background: #111;
+  color: #fff;
+}
+
+.select-arrow {
+  position: absolute;
+  right: 18px;
+  width: 10px;
+  height: 10px;
+  border-right: 3px solid #777;
+  border-bottom: 3px solid #777;
+  transform: translateY(-3px) rotate(45deg);
+  pointer-events: none;
+}
+
+.reset-btn {
+  width: clamp(52px, 13vw, 66px);
+  height: clamp(52px, 13vw, 66px);
+  border-radius: 50%;
+  background: var(--white);
+  display: grid;
+  place-items: center;
+  transition: transform 120ms ease;
+}
+
+.reset-symbol {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border: 4px dotted #000;
+  border-radius: 50%;
+}
+
+.reset-symbol::after {
+  content: "";
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 11px;
+  height: 11px;
+  background: #fff;
+  border-radius: 2px;
+}
+
+/* ---------- Player scores ---------- */
+
+.score-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(10px, 2.5vw, 18px);
+  margin-bottom: clamp(16px, 3vw, 24px);
+}
+
+.player-score {
+  min-height: clamp(48px, 11vw, 60px);
+  position: relative;
+  border: 2px solid #292929;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  color: #666;
+  background: #000;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.player-score.active {
+  color: #000;
+  background: #f4f4f4;
+  border-color: #f4f4f4;
+}
+
+.score-label,
+.score-value {
+  color: inherit;
+}
+
+.score-label {
+  font-family: "Courier New", monospace;
+  font-size: clamp(22px, 5.5vw, 32px);
+}
+
+.score-value {
+  font-family: "Courier New", monospace;
+  font-size: clamp(22px, 5.5vw, 32px);
+}
+
+.player-score .status-dot {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: var(--red);
+  opacity: 0;
+}
+
+.player-score.active .status-dot {
+  opacity: 1;
+}
+
+/* ---------- Game board ---------- */
 
 .game-board {
   display: grid;
-  grid-template-columns: repeat(var(--cols), 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap: var(--gap);
   width: 100%;
 }
 
 .card {
-  aspect-ratio: 1;
-  background: var(--card-bg);
-  border-radius: 10px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 1.8rem;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  border-radius: var(--card-radius);
+  border: 2px solid var(--card-hidden-border);
+  background: var(--card-hidden);
+  overflow: hidden;
+  perspective: 900px;
   cursor: pointer;
-  transition: transform 0.2s, background-color 0.2s;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  touch-action: manipulation;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.015);
 }
 
-.card.flipped {
-  background: #3b82f6;
+.card-inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 280ms cubic-bezier(.2,.75,.25,1);
+}
+
+.card.flipped .card-inner,
+.card.matched .card-inner {
   transform: rotateY(180deg);
 }
 
-.card.matched {
-  background: var(--card-matched);
-  opacity: 0.8;
-  cursor: default;
+.card-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
-.ad-container {
-  background: var(--card-bg);
-  border: 1px dashed #475569;
-  border-radius: 8px;
-  padding: 12px;
+.card-back {
+  background: var(--card-hidden);
+}
+
+.card-front {
+  background: var(--card-front);
+  transform: rotateY(180deg);
+}
+
+.card:active {
+  transform: scale(0.97);
+}
+
+.card.matched {
+  border-color: var(--white);
+}
+
+.card.matched .card-front {
+  animation: match-pop 280ms ease-out;
+}
+
+.card.match-error {
+  animation: shake 300ms ease-in-out;
+}
+
+/* ---------- Dot-matrix symbols ---------- */
+
+.dot-icon {
+  --dot: clamp(4px, 1.25vw, 8px);
+  --space: clamp(2px, 0.65vw, 4px);
+  display: grid;
+  gap: var(--space);
+  justify-content: center;
+  align-content: center;
+  width: min(72%, 100px);
+  height: min(72%, 100px);
+}
+
+.dot-icon .dot {
+  width: var(--dot);
+  height: var(--dot);
+  border-radius: 50%;
+  background: #000;
+}
+
+.card-back .dot-icon {
+  opacity: 0.22;
+}
+
+.card-back .dot-icon .dot {
+  background: #888;
+}
+
+.card-front .dot-icon {
+  opacity: 1;
+}
+
+/* ---------- Small info row ---------- */
+
+.game-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 4px 2px;
+  color: #777;
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+.game-info > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.game-info strong {
+  color: #ddd;
+  font-size: 14px;
+}
+
+/* ---------- Victory ---------- */
+
+.victory-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0,0,0,0.88);
+  backdrop-filter: blur(4px);
+}
+
+.victory-overlay[hidden] {
+  display: none;
+}
+
+.victory-card {
+  width: min(88%, 340px);
+  padding: 30px 24px;
+  border-radius: 34px;
+  background: #f4f4f4;
+  color: #000;
   text-align: center;
-  font-size: 0.8rem;
-  color: #94a3b8;
+  box-shadow: 0 18px 40px rgba(0,0,0,.35);
+}
+
+.victory-mark {
+  display: block;
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 18px;
+  border: 7px dotted #000;
+  border-radius: 50%;
+}
+
+.victory-title {
+  font-family: "Courier New", monospace;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+
+.victory-result,
+.victory-best {
+  margin-top: 10px;
+  font-family: "Courier New", monospace;
+  font-weight: 700;
+}
+
+.victory-best {
+  color: #666;
+  font-size: 13px;
+}
+
+.play-again-btn {
+  margin-top: 22px;
+  min-height: 52px;
+  padding: 0 24px;
+  border-radius: 999px;
+  background: #000;
+  color: #fff;
+  font-family: "Courier New", monospace;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+/* ---------- Advertisement placeholder ---------- */
+
+.ad-container {
+  display: none;
+}
+
+/* ---------- Animations ---------- */
+
+@keyframes match-pop {
+  0% { transform: scale(.92); }
+  55% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* ---------- Compact widget ---------- */
+
+@media (max-width: 520px) {
+  .app-shell {
+    justify-content: center;
+  }
+
+  .matcher-widget {
+    padding: 18px;
+  }
+
+  .widget-controls {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .player-toggle {
+    max-width: 154px;
+  }
+
+  .grid-control {
+    justify-self: start;
+  }
+
+  .score-row {
+    margin-bottom: 15px;
+  }
+
+  .game-info {
+    display: none;
+  }
+}
+
+/* 2x4: make the compact mode feel like the supplied horizontal widget. */
+@media (min-width: 521px) {
+  .matcher-widget {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 360px) {
+  .matcher-widget {
+    padding: 13px;
+    border-radius: 30px;
+  }
+
+  .widget-controls {
+    gap: 7px;
+  }
+
+  .mode-btn {
+    min-width: 45px;
+    padding: 0 8px;
+  }
+
+  .grid-control {
+    min-width: 92px;
+  }
+
+  .grid-control select {
+    padding-left: 12px;
+    padding-right: 26px;
+    font-size: 14px;
+  }
+
+  .reset-btn {
+    width: 46px;
+    height: 46px;
+  }
+
+  .score-row {
+    gap: 7px;
+  }
+
+  .player-score {
+    min-height: 43px;
+    gap: 7px;
+  }
+
+  .score-label,
+  .score-value {
+    font-size: 18px;
+  }
+
+  .player-score .status-dot {
+    width: 8px;
+    height: 8px;
+    right: 10px;
+  }
+
+  :root {
+    --gap: 7px;
+    --card-radius: 14px;
+  }
+}
+
+/* Landscape / compact widget presentation */
+@media (orientation: landscape) and (max-height: 600px) {
+  .app-shell {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .matcher-widget {
+    max-width: 720px;
+    padding: 16px 24px;
+  }
+
+  .score-row,
+  .game-info {
+    display: none;
+  }
+
+  .widget-controls {
+    margin-bottom: 12px;
+  }
+
+  .game-board {
+    max-width: 680px;
+    margin: 0 auto;
+  }
 }
